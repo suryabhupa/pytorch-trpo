@@ -132,6 +132,6 @@ for i_episode in count(1):
         print('Updating policy and value networks...')
         update_params(batch, policy_net, value_net, args)
         writer.flush()
-        os.fsync()
+        os.fsync(writer)
 
 writer.close()
