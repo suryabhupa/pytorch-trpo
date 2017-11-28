@@ -59,6 +59,7 @@ torch.manual_seed(args.seed)
 policy_net = Policy(num_inputs, num_actions)
 value_net = Value(num_inputs)
 
+
 def select_action(state):
     state = torch.from_numpy(state).unsqueeze(0)
     action_mean, _, action_std = policy_net(Variable(state))

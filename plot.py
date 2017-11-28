@@ -11,7 +11,7 @@ def main(filename):
 
     colors = sns.color_palette("hls", 3)
 
-    data = np.genfromtxt(filename, delimiter=',', skip_header=1, names=['episode', 'last_reward', 'average_reward', '0_step', '1_step', '2_step', '3_step'])
+    data = np.genfromtxt(filename, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '0_step', '1_step', '2_step', '3_step'])
 
     eps = data['episode']
     rews = data['average_reward']
