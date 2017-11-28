@@ -4,6 +4,7 @@ import torch
 from torch.autograd import Variable
 from utils import *
 
+# grads_list = []
 
 def conjugate_gradients(Avp, b, nsteps, residual_tol=1e-10):
     x = torch.zeros(b.size())
@@ -47,11 +48,36 @@ def linesearch(model,
             return True, xnew
     return False, x
 
+def aggregate_or_eval_grads(model, returns_arr, get_eval_loss, num_eval_grad_steps, grads_list, args, writer):
+    variances = []
+    for i in range(4):
+        eval_loss = get_eval_loss(returns_arr[i])
+        grads = torch.autograd.grad(eval_loss, model.parameters())
+        loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
+        if num_eval_grad_steps % args.eval_grad_freq == 0:
+            total_grads = np.vstack(grads_list[i])
+            variance = np.log(np.mean(np.var(total_grads[i], 0)))
+            print("Log Gradient Variance for {}-step oracle model: {}".format(i, variance))
+            variances.append(variance)
+            grads_list[i] = []
+        else:
+            grads_list[i].append(loss_grad.numpy())
+
+    if len(variances) == 4:
+        # writer.writerow(variances)
+        for var in variances:
+            writer.write("{},".format(var))
+        writer.write("\n")
+
+    return grads_list
 
 def trpo_step(model, get_loss, get_kl, max_kl, damping):
     loss = get_loss()
     grads = torch.autograd.grad(loss, model.parameters())
     loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
+    # Get grads wrt different losses
+    # Store across epochs
+    # Compute variances
 
     def Fvp(v):
         kl = get_kl()
