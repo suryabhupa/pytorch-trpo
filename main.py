@@ -3,18 +3,19 @@ import csv
 import os
 import datetime
 from itertools import count
+import pdb
 
 import gym
 import scipy.optimize
 
 import torch
 from models import *
+from loss import *
+from utils import *
+
 from replay_memory import Memory
 from running_state import ZFilter
 from torch.autograd import Variable
-from loss import compute_gradient_estimates, compute_gradient_estimates_advs, update_params
-
-from utils import *
 
 torch.utils.backcompat.broadcast_warning.enabled = True
 torch.utils.backcompat.keepdim_warning.enabled = True
@@ -22,6 +23,8 @@ torch.utils.backcompat.keepdim_warning.enabled = True
 torch.set_default_tensor_type('torch.DoubleTensor')
 
 parser = argparse.ArgumentParser(description='PyTorch actor-critic example')
+parser.add_argument('--test', action='store_true',
+                    help='debug flag; log to test files')
 parser.add_argument('--gamma', type=float, default=0.995, metavar='G',
                     help='discount factor (default: 0.995)')
 parser.add_argument('--env-name', default="Reacher-v1", metavar='G',
@@ -30,6 +33,8 @@ parser.add_argument('--eval-grad', action='store_true',
                     help='evaluate gradient variance')
 parser.add_argument('--eval-grad-gae', action='store_true',
                     help='evaluate gradient variance with GAE')
+parser.add_argument('--eval-grad-qe', action='store_true',
+                    help='evaluate gradient variance with QE models')
 parser.add_argument('--eval-grad-freq', type=int, default=5, metavar='N',
                     help='frequency of gradient variance estimation')
 parser.add_argument('--tau', type=float, default=0.97, metavar='G',
@@ -60,27 +65,37 @@ torch.manual_seed(args.seed)
 
 policy_net = Policy(num_inputs, num_actions)
 value_net = Value(num_inputs)
+qvalue_net = Value(num_inputs + num_actions)
+qevalue_net = Value(num_inputs + num_actions + num_actions)
 
 
 def select_action(state):
     state = torch.from_numpy(state).unsqueeze(0)
     action_mean, _, action_std = policy_net(Variable(state))
-    action = torch.normal(action_mean, action_std)
-    return action
+    eps = Variable(torch.normal(torch.zeros(action_mean.size()), torch.ones(action_std.size())))
+    action = action_mean + eps * action_std
+    return eps, action
 
 
 running_state = ZFilter((num_inputs,), clip=5)
 running_reward = ZFilter((1,), demean=False, clip=10)
 
 num_grad_eval_steps = 0
-grads_list = [[], [], [], [], [], []]
 
 # Preparing files for logging
 timestamp = '{:%Y%m%d-%H%M}'.format(datetime.datetime.now())
 if args.eval_grad_gae:
+    grads_list = [[], [], [], [], []]
     filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
+elif args.eval_grad_qe:
+    grads_list = [[], [], [], [], [], [], []]
+    filename = "logs/qe_oracle_qe_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
 else:
+    grads_list = [[], [], [], [], [], []]
     filename = "logs/qe_oracle_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
+
+if args.test:
+    filename = "logs/test.csv"
 
 file_h = open(filename, "a+")
 writer = file_h
@@ -88,6 +103,9 @@ writer = file_h
 if args.eval_grad_gae:
     f_cge = compute_gradient_estimates_advs
     writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10\n')
+elif args.eval_grad_qe:
+    f_cge = compute_gradient_estimates_qe
+    writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel,qemodel\n')
 else:
     f_cge = compute_gradient_estimates
     writer.write('episode,last reward,average reward,step0,stephalf,step1,step2,step3,step10\n')
@@ -104,8 +122,9 @@ for i_episode in count(1):
 
         reward_sum = 0
         for t in range(10000): # Don't infinite loop while learning
-            action = select_action(state)
+            eps, action = select_action(state)
             action = action.data[0].numpy()
+            eps = eps.data[0].numpy()
             next_state, reward, done, _ = env.step(action)
             reward_sum += reward
 
@@ -114,8 +133,7 @@ for i_episode in count(1):
             mask = 1
             if done:
                 mask = 0
-
-            memory.push(state, np.array([action]), mask, next_state, reward)
+            memory.push(state, np.array([eps]), np.array([action]), mask, next_state, reward)
 
             if args.render:
                 env.render()
@@ -130,14 +148,17 @@ for i_episode in count(1):
     reward_batch /= num_episodes
     batch = memory.sample()
 
-    num_grad_eval_steps += 1
-
     # Switch between gradient evaluation and normal
-    numer = num_grad_eval_steps % args.eval_grad_freq if num_grad_eval_steps % args.eval_grad_freq else args.eval_grad_freq
-    print('Estimating gradient update ({}/{} done)...'.format(numer, args.eval_grad_freq))
-    grads_list = f_cge(batch, policy_net, value_net, args, num_grad_eval_steps, grads_list, writer)
+    if args.eval_grad:
+        num_grad_eval_steps += 1
+        numer = num_grad_eval_steps % args.eval_grad_freq if num_grad_eval_steps % args.eval_grad_freq else args.eval_grad_freq
+        print('Estimating gradient update ({}/{} done)...'.format(numer, args.eval_grad_freq))
+        if args.eval_grad_qe:
+            grads_list = f_cge(batch, policy_net, value_net, qvalue_net, qevalue_net, args, num_grad_eval_steps, grads_list, writer)
+        else:
+            grads_list = f_cge(batch, policy_net, value_net, args, num_grad_eval_steps, grads_list, writer)
 
-    if num_grad_eval_steps % args.eval_grad_freq == 0:
+    if num_grad_eval_steps % args.eval_grad_freq == 0 or args.eval_grad == False:
         print('Episode {}\tLast reward: {}\tAverage reward {:.2f}'.format(
             i_episode, reward_sum, reward_batch))
         writer.write("{},{},{},".format(i_episode, reward_sum, reward_batch))

@@ -9,10 +9,13 @@ import seaborn as sns
 import scipy
 from scipy.signal import savgol_filter
 
-def main(filename, gae):
+def main(filename, gae, qe):
     if gae:
         data = np.genfromtxt(filename, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '0_step', '1_step', '2_step', '3_step', '10_step'])
         var = np.vstack((data['0_step'], data['1_step'], data['2_step'], data['3_step'], data['10_step'])).T
+    elif qe:
+        data = np.genfromtxt(filename, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '1_step', '2_step', '3_step', '10_step', 'value', 'qvalue', 'qevalue'])
+        var = np.vstack((data['1_step'], data['2_step'], data['3_step'], data['10_step'], data['value'], data['qvalue'], data['qevalue'])).T
     else:
         data = np.genfromtxt(filename, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '0_step', 'half_step', '1_step', '2_step', '3_step', '10_step'])
         var = np.vstack((data['0_step'], data['half_step'], data['1_step'], data['2_step'], data['3_step'], data['10_step'])).T
@@ -20,29 +23,48 @@ def main(filename, gae):
     eps = data['episode']
     rews = data['average_reward']
 
-    plt.figure(figsize=(12, 4))
-
-    ax = plt.subplot(121)
-    ax.set_title('variance')
-
     if gae:
-        plt.plot(eps,savgol_filter(var[:,0], 101, 5), label='0-step')
-        plt.plot(eps,savgol_filter(var[:,1], 101, 5),label='1-step')
-        plt.plot(eps,savgol_filter(var[:,2], 101, 5),label='2-step')
-        plt.plot(eps,savgol_filter(var[:,3], 101, 5),label='3-step')
-        plt.plot(eps,savgol_filter(var[:,4], 101, 5),label='10-step')
+        plt.figure(figsize=(12, 4))
+        ax = plt.subplot(121)
+        ax.set_title('variance')
+        plt.plot(eps,savgol_filter(var[:,0], 51, 5), label='0-step')
+        plt.plot(eps,savgol_filter(var[:,1], 51, 5),label='1-step')
+        plt.plot(eps,savgol_filter(var[:,2], 51, 5),label='2-step')
+        plt.plot(eps,savgol_filter(var[:,3], 51, 5),label='3-step')
+        plt.plot(eps,savgol_filter(var[:,4], 51, 5),label='10-step')
         plt.plot(eps,var[:,0], alpha=0.15)
         plt.plot(eps,var[:,1], alpha=0.15)
         plt.plot(eps,var[:,2], alpha=0.15)
         plt.plot(eps,var[:,3], alpha=0.15)
         plt.plot(eps,var[:,4], alpha=0.15)
+    elif qe:
+        plt.figure(figsize=(16, 6))
+        ax = plt.subplot(121)
+        ax.set_title('variance')
+        plt.plot(eps,savgol_filter(var[:,0], 11, 5), label='1-step')
+        plt.plot(eps,savgol_filter(var[:,1], 11, 5),label='2-step')
+        plt.plot(eps,savgol_filter(var[:,2], 11, 5),label='3-step')
+        plt.plot(eps,savgol_filter(var[:,3], 11, 5),label='10-step')
+        plt.plot(eps,savgol_filter(var[:,4], 11, 5),label='value')
+        plt.plot(eps,savgol_filter(var[:,5], 11, 5),label='qvalue')
+        plt.plot(eps,savgol_filter(var[:,6], 11, 5),label='qevalue')
+        plt.plot(eps,var[:,0], alpha=0.15)
+        plt.plot(eps,var[:,1], alpha=0.15)
+        plt.plot(eps,var[:,2], alpha=0.15)
+        plt.plot(eps,var[:,3], alpha=0.15)
+        plt.plot(eps,var[:,4], alpha=0.15)
+        plt.plot(eps,var[:,5], alpha=0.15)
+        plt.plot(eps,var[:,6], alpha=0.15)
     else:
-        plt.plot(eps,savgol_filter(var[:,0], 101, 5), label='0-step')
-        plt.plot(eps,savgol_filter(var[:,1], 101, 5), label='half-step')
-        plt.plot(eps,savgol_filter(var[:,2], 101, 5),label='1-step')
-        plt.plot(eps,savgol_filter(var[:,3], 101, 5),label='2-step')
-        plt.plot(eps,savgol_filter(var[:,4], 101, 5),label='3-step')
-        plt.plot(eps,savgol_filter(var[:,5], 101, 5),label='10-step')
+        plt.figure(figsize=(16, 6))
+        ax = plt.subplot(121)
+        ax.set_title('variance')
+        plt.plot(eps,savgol_filter(var[:,0], 51, 5), label='0-step')
+        plt.plot(eps,savgol_filter(var[:,1], 51, 5), label='half-step')
+        plt.plot(eps,savgol_filter(var[:,2], 51, 5),label='1-step')
+        plt.plot(eps,savgol_filter(var[:,3], 51, 5),label='2-step')
+        plt.plot(eps,savgol_filter(var[:,4], 51, 5),label='3-step')
+        plt.plot(eps,savgol_filter(var[:,5], 51, 5),label='10-step')
         plt.plot(eps,var[:,0], alpha=0.15)
         plt.plot(eps,var[:,1], alpha=0.15)
         plt.plot(eps,var[:,2], alpha=0.15)
@@ -55,8 +77,10 @@ def main(filename, gae):
     plt.plot(eps,rews, label='rewards')
 
     plt.subplot(121)
-    plt.legend(loc='upper center', ncol=3)
-    # plt.legend(loc='center right',bbox_to_anchor=(1, 0.5))
+    if qe:
+        plt.legend(loc='upper center', ncol=4)
+    else:
+        plt.legend(loc='upper center', ncol=3)
     plt.subplot(122)
     lgd = plt.legend(loc='lower center')
 
@@ -68,8 +92,21 @@ def main(filename, gae):
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         raise ValueError('Not enough arguments provided: need [filename] and [gae flag]')
+
     filename = sys.argv[1]
-    gae = True if sys.argv[2] == '--gae' else False
-    main(filename, gae)
+
+    if sys.argv[2] == '--gae':
+        gae = True
+        qe = False
+    elif sys.argv[2] == '--qe':
+        gae = False
+        qe = True
+    elif sys.argv[2] == '-no-flag':
+        qe = False
+        gae = False
+    else:
+        raise ValueError('Flag must be [--gae] or [--qe] or [--no-flag]')
+
+    main(filename, gae, qe)
 
 
