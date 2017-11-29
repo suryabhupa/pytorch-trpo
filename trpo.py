@@ -50,21 +50,25 @@ def linesearch(model,
 
 def aggregate_or_eval_grads(model, returns_arr, get_eval_loss, num_eval_grad_steps, grads_list, args, writer):
     variances = []
-    for i in range(4):
+    if args.eval_grad_gae:
+        ranges = [0, 1, 2, 3, 10]
+    else:
+        ranges = [0, 0.5, 1, 2, 3, 10]
+
+    for i, step in enumerate(ranges):
         eval_loss = get_eval_loss(returns_arr[i])
         grads = torch.autograd.grad(eval_loss, model.parameters())
         loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
         if num_eval_grad_steps % args.eval_grad_freq == 0:
             total_grads = np.vstack(grads_list[i])
-            variance = np.log(np.mean(np.var(total_grads[i], 0)))
-            print("Log Gradient Variance for {}-step oracle model: {}".format(i, variance))
+            variance = np.log(np.mean(np.var(total_grads, 0)))
+            print("Log Gradient Variance for {}-step oracle model: {}".format(step, variance))
             variances.append(variance)
             grads_list[i] = []
         else:
             grads_list[i].append(loss_grad.numpy())
 
-    if len(variances) == 4:
-        # writer.writerow(variances)
+    if len(variances) == len(ranges):
         for var in variances:
             writer.write("{},".format(var))
         writer.write("\n")

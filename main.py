@@ -12,7 +12,7 @@ from models import *
 from replay_memory import Memory
 from running_state import ZFilter
 from torch.autograd import Variable
-from loss import compute_gradient_estimates, update_params
+from loss import compute_gradient_estimates, compute_gradient_estimates_advs, update_params
 
 from utils import *
 
@@ -28,6 +28,8 @@ parser.add_argument('--env-name', default="Reacher-v1", metavar='G',
                     help='name of the environment to run')
 parser.add_argument('--eval-grad', action='store_true',
                     help='evaluate gradient variance')
+parser.add_argument('--eval-grad-gae', action='store_true',
+                    help='evaluate gradient variance with GAE')
 parser.add_argument('--eval-grad-freq', type=int, default=5, metavar='N',
                     help='frequency of gradient variance estimation')
 parser.add_argument('--tau', type=float, default=0.97, metavar='G',
@@ -71,15 +73,24 @@ running_state = ZFilter((num_inputs,), clip=5)
 running_reward = ZFilter((1,), demean=False, clip=10)
 
 num_grad_eval_steps = 0
-grads_list = [[], [], [], []]
+grads_list = [[], [], [], [], [], []]
 
 # Preparing files for logging
 timestamp = '{:%Y%m%d-%H%M}'.format(datetime.datetime.now())
-filename = "logs/qe_oracle_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
+if args.eval_grad_gae:
+    filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
+else:
+    filename = "logs/qe_oracle_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
+
 file_h = open(filename, "a+")
-# writer = csv.writer(file_h, delimiter=',')
 writer = file_h
-writer.write('episode,last reward,average reward,step0,step1,step2,step3\n')
+
+if args.eval_grad_gae:
+    f_cge = compute_gradient_estimates_advs
+    writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10\n')
+else:
+    f_cge = compute_gradient_estimates
+    writer.write('episode,last reward,average reward,step0,stephalf,step1,step2,step3,step10\n')
 
 for i_episode in count(1):
     memory = Memory()
@@ -124,7 +135,7 @@ for i_episode in count(1):
     # Switch between gradient evaluation and normal
     numer = num_grad_eval_steps % args.eval_grad_freq if num_grad_eval_steps % args.eval_grad_freq else args.eval_grad_freq
     print('Estimating gradient update ({}/{} done)...'.format(numer, args.eval_grad_freq))
-    grads_list = compute_gradient_estimates(batch, policy_net, value_net, args, num_grad_eval_steps, grads_list, writer)
+    grads_list = f_cge(batch, policy_net, value_net, args, num_grad_eval_steps, grads_list, writer)
 
     if num_grad_eval_steps % args.eval_grad_freq == 0:
         print('Episode {}\tLast reward: {}\tAverage reward {:.2f}'.format(
