@@ -49,6 +49,8 @@ parser.add_argument('--seed', type=int, default=543, metavar='N',
                     help='random seed (default: 1)')
 parser.add_argument('--batch-size', type=int, default=15000, metavar='N',
                     help='random seed (default: 1)')
+parser.add_argument('--max-steps', type=int, default=9000000, metavar='N',
+                    help='random seed (default: 1)')
 parser.add_argument('--render', action='store_true',
                     help='render the environment')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
@@ -110,7 +112,7 @@ else:
     f_cge = compute_gradient_estimates
     writer.write('episode,last reward,average reward,step0,stephalf,step1,step2,step3,step10\n')
 
-for i_episode in count(1):
+for i_episode in range(1, int(args.max_steps/args.batch_size), 1):
     memory = Memory()
 
     num_steps = 0
@@ -163,7 +165,10 @@ for i_episode in count(1):
             i_episode, reward_sum, reward_batch))
         writer.write("{},{},{},".format(i_episode, reward_sum, reward_batch))
         print('Updating policy and value networks...')
-        update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
+        if args.eval_grad_qe:
+            update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
+        else:
+            update_params(batch, policy_net, value_net, args)
         writer.flush()
         os.fsync(writer)
 
