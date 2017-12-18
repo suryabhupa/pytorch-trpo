@@ -9,19 +9,22 @@ import seaborn as sns
 import scipy
 from scipy.signal import savgol_filter
 
-def main(filename, gae, qe):
+def main(filename1, filename2, gae, qe):
     if gae:
         data = np.genfromtxt(filename, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '0_step', '1_step', '2_step', '3_step', '10_step'])
         var = np.vstack((data['0_step'], data['1_step'], data['2_step'], data['3_step'], data['10_step'])).T
     elif qe:
-        data = np.genfromtxt(filename, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '1_step', '2_step', '3_step', '10_step', 'qvalue', 'qfirst', 'qsecond'])
+        data = np.genfromtxt(filename1, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '1_step', '2_step', '3_step', '10_step', 'qvalue', 'qfirst', 'qsecond'])
         var = np.vstack((data['1_step'], data['2_step'], data['3_step'], data['10_step'], data['qvalue'], data['qfirst'], data['qsecond'])).T
+        data2 = np.genfromtxt(filename2, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '1_step', '2_step', '3_step', '10_step', 'qvalue', 'qfirst', 'qsecond'])
+        var2 = np.vstack((data2['1_step'], data2['2_step'], data2['3_step'], data2['10_step'], data2['qvalue'], data2['qfirst'], data2['qsecond'])).T
     else:
         data = np.genfromtxt(filename, delimiter=',', skip_header=2, skip_footer=1, names=['episode', 'last_reward', 'average_reward', '0_step', 'half_step', '1_step', '2_step', '3_step', '10_step'])
         var = np.vstack((data['0_step'], data['half_step'], data['1_step'], data['2_step'], data['3_step'], data['10_step'])).T
 
     eps = data['episode']
     rews = data['average_reward']
+    rews2 = data2['average_reward']
 
     if gae:
         plt.figure(figsize=(12, 4))
@@ -74,7 +77,8 @@ def main(filename, gae, qe):
 
     ax = plt.subplot(122)
     ax.set_title('average rewards')
-    plt.plot(eps,rews, label='rewards')
+    plt.plot(eps[:500],rews[:500], label='new_rewards')
+    plt.plot(eps[:500],rews2[:500], label='old_rewards')
 
     plt.subplot(121)
     if qe:
@@ -94,19 +98,20 @@ if __name__ == '__main__':
         raise ValueError('Not enough arguments provided: need [filename] and [gae flag]')
 
     filename = sys.argv[1]
+    filename2 = sys.argv[2]
 
-    if sys.argv[2] == '--gae':
+    if sys.argv[3] == '--gae':
         gae = True
         qe = False
-    elif sys.argv[2] == '--qe':
+    elif sys.argv[3] == '--qe':
         gae = False
         qe = True
-    elif sys.argv[2] == '-no-flag':
+    elif sys.argv[3] == '-no-flag':
         qe = False
         gae = False
     else:
         raise ValueError('Flag must be [--gae] or [--qe] or [--no-flag]')
 
-    main(filename, gae, qe)
+    main(filename, filename2, gae, qe)
 
 

@@ -46,13 +46,12 @@ def linesearch(model,
             return True, xnew
     return False, x
 
-def aggregate_or_eval_grads_qe(model, returns_arr, get_eval_loss, num_eval_grad_steps, grads_list, args, writer):
+def aggregate_or_eval_grads_qe(model, returns_arr, losses, num_eval_grad_steps, grads_list, args, writer):
     variances = []
-    descs = ['1-step', '2-step', '3-step', '10-step', 'value', 'qvalue', 'qe']
+    get_oracle_eval_loss = losses[0]
+    get_qe_loss = losses[1]
+    descs = ['1-step', '2-step', '3-step', '10-step', 'qvalue', 'qfirst', 'qsecond']
     for desc, return_arr in zip(descs, returns_arr):
-        eval_loss = get_eval_loss(return_arr)
-        grads = torch.autograd.grad(eval_loss, model.parameters())
-        loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
         if num_eval_grad_steps % args.eval_grad_freq == 0:
             total_grads = np.vstack(grads_list[descs.index(desc)])
             variance = np.log(np.mean(np.var(total_grads, 0)))
@@ -60,6 +59,16 @@ def aggregate_or_eval_grads_qe(model, returns_arr, get_eval_loss, num_eval_grad_
             variances.append(variance)
             grads_list[descs.index(desc)] = []
         else:
+            if desc[0] != 'q':
+                eval_loss = get_oracle_eval_loss(return_arr)
+            elif desc == 'qvalue':
+                eval_loss = get_qe_loss(return_arr)[0]
+            elif desc == 'qfirst':
+                eval_loss = get_qe_loss(return_arr)[1]
+            elif desc == 'qsecond':
+                eval_loss = get_qe_loss(return_arr)[2]
+            grads = torch.autograd.grad(eval_loss, model.parameters())
+            loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
             grads_list[descs.index(desc)].append(loss_grad.numpy())
 
     if len(variances) == len(descs):

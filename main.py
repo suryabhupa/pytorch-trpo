@@ -163,7 +163,7 @@ for i_episode in count(1):
             i_episode, reward_sum, reward_batch))
         writer.write("{},{},{},".format(i_episode, reward_sum, reward_batch))
         print('Updating policy and value networks...')
-        update_params(batch, policy_net, value_net, args)
+        update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
         writer.flush()
         os.fsync(writer)
 
