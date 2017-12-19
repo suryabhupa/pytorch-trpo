@@ -51,11 +51,11 @@ parser.add_argument('--damping', type=float, default=1e-1, metavar='G',
 parser.add_argument('--adv-norm', action='store_true',
                     help='normalize advantages')
 parser.add_argument('--seed', type=int, default=543, metavar='N',
-                    help='random seed (default: 1)')
+                    help='random seed (default: 543)')
 parser.add_argument('--batch-size', type=int, default=15000, metavar='N',
-                    help='random seed (default: 1)')
+                    help='batch size (default: 15000)')
 parser.add_argument('--max-steps', type=int, default=9000000, metavar='N',
-                    help='random seed (default: 1)')
+                    help='max steps (default: 9000000)')
 parser.add_argument('--render', action='store_true',
                     help='render the environment')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
