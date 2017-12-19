@@ -1,3 +1,5 @@
+import torch
+
 import argparse
 import csv
 import os
@@ -8,7 +10,6 @@ import pdb
 import gym
 import scipy.optimize
 
-import torch
 from models import *
 from loss import *
 from utils import *
@@ -34,6 +35,8 @@ parser.add_argument('--eval-grad', action='store_true',
 parser.add_argument('--eval-grad-gae', action='store_true',
                     help='evaluate gradient variance with GAE')
 parser.add_argument('--eval-grad-qe', action='store_true',
+                    help='evaluate gradient variance with Q models')
+parser.add_argument('--eval-grad-qae', action='store_true',
                     help='evaluate gradient variance with QE models')
 parser.add_argument('--eval-grad-freq', type=int, default=5, metavar='N',
                     help='frequency of gradient variance estimation')
@@ -45,6 +48,8 @@ parser.add_argument('--max-kl', type=float, default=1e-2, metavar='G',
                     help='max kl value (default: 1e-2)')
 parser.add_argument('--damping', type=float, default=1e-1, metavar='G',
                     help='damping (default: 1e-1)')
+parser.add_argument('--adv-norm', action='store_true',
+                    help='normalize advantages')
 parser.add_argument('--seed', type=int, default=543, metavar='N',
                     help='random seed (default: 1)')
 parser.add_argument('--batch-size', type=int, default=15000, metavar='N',
@@ -86,15 +91,23 @@ num_grad_eval_steps = 0
 
 # Preparing files for logging
 timestamp = '{:%Y%m%d-%H%M}'.format(datetime.datetime.now())
+if args.adv_norm:
+    advnorm = "yan"
+else:
+    advnorm = "nan"
+
 if args.eval_grad_gae:
     grads_list = [[], [], [], [], []]
-    filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
+    filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}_{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp)
 elif args.eval_grad_qe:
+    grads_list = [[], [], [], [], [], [], [], []]
+    filename = "logs/qe_oracle_qe_{}_eg-freq-{}_{}_{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp)
+elif args.eval_grad_qae:
     grads_list = [[], [], [], [], [], [], []]
-    filename = "logs/qe_oracle_qe_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
+    filename = "logs/qe_oracle_qae_{}_eg-freq-{}_{}_{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp)
 else:
     grads_list = [[], [], [], [], [], []]
-    filename = "logs/qe_oracle_{}_eg-freq-{}_{}.csv".format(args.env_name, args.eval_grad_freq, timestamp)
+    filename = "logs/qe_oracle_{}_eg-freq-{}_{}_{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp)
 
 if args.test:
     filename = "logs/test.csv"
@@ -105,14 +118,20 @@ writer = file_h
 if args.eval_grad_gae:
     f_cge = compute_gradient_estimates_advs
     writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10\n')
+elif args.eval_grad_qae:
+    f_cge = compute_gradient_estimates_qae
+    writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel,qemodel\n')
 elif args.eval_grad_qe:
     f_cge = compute_gradient_estimates_qe
-    writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel,qemodel\n')
+    writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel\n')
 else:
     f_cge = compute_gradient_estimates
     writer.write('episode,last reward,average reward,step0,stephalf,step1,step2,step3,step10\n')
 
-for i_episode in range(1, int(args.max_steps/args.batch_size), 1):
+print("f_cge", f_cge)
+
+i_episode = 1
+while i_episode < int(args.max_steps / args.batch_size):
     memory = Memory()
 
     num_steps = 0
@@ -155,7 +174,7 @@ for i_episode in range(1, int(args.max_steps/args.batch_size), 1):
         num_grad_eval_steps += 1
         numer = num_grad_eval_steps % args.eval_grad_freq if num_grad_eval_steps % args.eval_grad_freq else args.eval_grad_freq
         print('Estimating gradient update ({}/{} done)...'.format(numer, args.eval_grad_freq))
-        if args.eval_grad_qe:
+        if args.eval_grad_qe or args.eval_grad_qae:
             grads_list = f_cge(batch, policy_net, value_net, qvalue_net, qevalue_net, args, num_grad_eval_steps, grads_list, writer)
         else:
             grads_list = f_cge(batch, policy_net, value_net, args, num_grad_eval_steps, grads_list, writer)
@@ -167,9 +186,12 @@ for i_episode in range(1, int(args.max_steps/args.batch_size), 1):
         print('Updating policy and value networks...')
         if args.eval_grad_qe:
             update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
+        if args.eval_grad_qae:
+            update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
         else:
             update_params(batch, policy_net, value_net, args)
         writer.flush()
         os.fsync(writer)
+        i_episode += 1
 
 writer.close()
