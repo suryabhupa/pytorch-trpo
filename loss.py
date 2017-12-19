@@ -39,7 +39,12 @@ def compute_gradient_estimates_advs(batch, policy_net, value_net, args, num_eval
 
     mask_ends = np.argwhere(masks.numpy() == 0).flatten() + 1
     if not all(mask_ends[i] % mask_ends[0] == 0 for i in range(len(mask_ends))):
-        raise NotImplementedError
+        print('mask_ends', mask_ends - np.roll(mask_ends, 1))
+        print('max(mask_ends)', max(mask_ends - np.roll(mask_ends, 1)))
+        raise NotImplementedError("The episode lengths don't have the same length.")
+    print('mask_ends', mask_ends - np.roll(mask_ends, 1))
+    print('max(mask_ends)', max(mask_ends - np.roll(mask_ends, 1)))
+    quit(1)
     ep_len = int(mask_ends[0])
 
     # Represents normal returns, and 1-, 2-, 3-, 10-step models.
