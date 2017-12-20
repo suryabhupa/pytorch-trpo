@@ -426,9 +426,12 @@ def update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args
             values_ = net(Variable(torch.cat([states, actions, eps], 1)))
             value_loss = (values_ - targets_q).pow(2).mean()
 
+        print('====== QE update params ======')
+        print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss))
         # weight decay
         for param in net.parameters():
             value_loss += param.pow(2).sum() * args.l2_reg
+        print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss))
         value_loss.backward()
         return (value_loss.data.double().numpy()[0], get_flat_grad_from(net).data.double().numpy())
 
@@ -519,9 +522,12 @@ def update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, arg
             values_ = net(Variable(torch.cat([states, actions, eps], 1)))
             value_loss = (values_ - targets_q).pow(2).mean()
 
+        print('====== QAE update params ======')
+        print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss))
         # weight decay
         for param in net.parameters():
             value_loss += param.pow(2).sum() * args.l2_reg
+        print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss))
         value_loss.backward()
         return (value_loss.data.double().numpy()[0], get_flat_grad_from(net).data.double().numpy())
 
