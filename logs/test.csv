@@ -548,3 +548,20 @@ episode,last reward,average reward,step0,step1,step2,step3,step10
 1,-122.6616903421757,-110.85267944251117,episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel,qemodel
 1,-122.6616903421757,-110.85267944251117,
 >>>>>>> 455745d66ce0901938c0f64338fd45bf9767f7f6
+episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel
+1,-122.6616903421757,-110.85267944251117
+2,-89.4750393794569,-88.28826814313615
+episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel
+1,-122.6616903421757,-110.85267944251117
+episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel
+1,-122.6616903421757,-110.85267944251117
+episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel
+1,-122.6616903421757,-110.85267944251117
+episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel
+1,-122.6616903421757,-110.85267944251117
+2,-89.4750393794569,-88.28826814313615
+episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel,qemodel
+1,-122.6616903421757,-110.85267944251117
+2,-99.67773492307063,-98.44775129914524
+3,-98.59508553852092,-87.55609116707336
+4,-67.49641821464084,-79.44390816324044

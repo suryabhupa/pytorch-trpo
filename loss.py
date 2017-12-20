@@ -410,7 +410,7 @@ def update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args
     targets_q = Variable(advantages)
 
     # Original code uses the same LBFGS to optimize the value loss
-    def get_value_loss(flat_params, net, uid):
+    def get_value_loss(flat_params, net, uid, debug=False):
         set_flat_params_to(net, torch.Tensor(flat_params))
         for param in net.parameters():
             if param.grad is not None:
@@ -426,19 +426,24 @@ def update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args
             values_ = net(Variable(torch.cat([states, actions, eps], 1)))
             value_loss = (values_ - targets_q).pow(2).mean()
 
-        print('====== QE update params ======')
-        print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss))
+        if debug:
+          print('====== QE update params ======')
+          print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss.data[0]))
         # weight decay
         for param in net.parameters():
             value_loss += param.pow(2).sum() * args.l2_reg
-        print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss))
+        if debug:
+          print('VALUE_LOSS_{} after L2: {}'.format(uid, value_loss.data[0]))
         value_loss.backward()
         return (value_loss.data.double().numpy()[0], get_flat_grad_from(net).data.double().numpy())
 
+    get_value_loss(get_flat_params_from(value_net).double().numpy(), value_net, 'v', debug=True)
     flat_params_v, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(value_net).double().numpy(), args=[value_net, 'v'], maxiter=25)
     set_flat_params_to(value_net, torch.Tensor(flat_params_v))
+    get_value_loss(get_flat_params_from(qvalue_net).double().numpy(), qvalue_net, 'q', debug=True)
     flat_params_q, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qvalue_net).double().numpy(), args=[qvalue_net, 'q'], maxiter=25)
     set_flat_params_to(qvalue_net, torch.Tensor(flat_params_q))
+    get_value_loss(get_flat_params_from(qevalue_net).double().numpy(), qevalue_net, 'qe', debug=True)
     flat_params_qe, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qevalue_net).double().numpy(), args=[qevalue_net, 'qe'], maxiter=25)
     set_flat_params_to(qevalue_net, torch.Tensor(flat_params_qe))
 
@@ -506,7 +511,7 @@ def update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, arg
     targets_q = Variable(advantages)
 
     # Original code uses the same LBFGS to optimize the value loss
-    def get_value_loss(flat_params, net, uid):
+    def get_value_loss(flat_params, net, uid, debug=False):
         set_flat_params_to(net, torch.Tensor(flat_params))
         for param in net.parameters():
             if param.grad is not None:
@@ -522,19 +527,24 @@ def update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, arg
             values_ = net(Variable(torch.cat([states, actions, eps], 1)))
             value_loss = (values_ - targets_q).pow(2).mean()
 
-        print('====== QAE update params ======')
-        print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss))
+        if debug:
+          print('====== QE update params ======')
+          print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss.data[0]))
         # weight decay
         for param in net.parameters():
             value_loss += param.pow(2).sum() * args.l2_reg
-        print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss))
+        if debug:
+          print('VALUE_LOSS_{} after L2: {}'.format(uid, value_loss.data[0]))
         value_loss.backward()
         return (value_loss.data.double().numpy()[0], get_flat_grad_from(net).data.double().numpy())
 
+    get_value_loss(get_flat_params_from(value_net).double().numpy(), value_net, 'v', debug=True)
     flat_params_v, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(value_net).double().numpy(), args=[value_net, 'v'], maxiter=25)
     set_flat_params_to(value_net, torch.Tensor(flat_params_v))
+    get_value_loss(get_flat_params_from(qvalue_net).double().numpy(), qvalue_net, 'q', debug=True)
     flat_params_q, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qvalue_net).double().numpy(), args=[qvalue_net, 'q'], maxiter=25)
     set_flat_params_to(qvalue_net, torch.Tensor(flat_params_q))
+    get_value_loss(get_flat_params_from(qevalue_net).double().numpy(), qevalue_net, 'qe', debug=True)
     flat_params_qe, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qevalue_net).double().numpy(), args=[qevalue_net, 'qe'], maxiter=25)
     set_flat_params_to(qevalue_net, torch.Tensor(flat_params_qe))
 
