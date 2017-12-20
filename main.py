@@ -96,23 +96,35 @@ if args.adv_norm:
 else:
     advnorm = "nan"
 
-if args.seed != 543:
+if args.seed == 543:
     seedstr = ""
 else:
     seedstr = "_seed-{}".format(args.seed)
 
 if args.eval_grad_gae:
     grads_list = [[], [], [], [], []]
-    filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+    if args.eval_grad:
+        filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+    else:
+        filename = "logs/qe_oracle_gae_{}_eg-{}_{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr)
 elif args.eval_grad_qe:
     grads_list = [[], [], [], [], [], [], [], []]
-    filename = "logs/qe_oracle_qe_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+    if args.eval_grad:
+        filename = "logs/qe_oracle_qe_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+    else:
+        filename = "logs/qe_oracle_qe_{}_eg-{}_{}_{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr)
 elif args.eval_grad_qae:
     grads_list = [[], [], [], [], [], [], []]
-    filename = "logs/qe_oracle_qae_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+    if args.eval_grad:
+        filename = "logs/qe_oracle_qae_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+    else:
+        filename = "logs/qe_oracle_qae_{}_eg-{}_{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr)
 else:
     grads_list = [[], [], [], [], [], []]
-    filename = "logs/qe_oracle_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+    if args.eval_grad:
+        filename = "logs/qe_oracle_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+    else:
+        filename = "logs/qe_oracle_{}_eg-{}_{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr)
 
 if args.test:
     filename = "logs/test.csv"

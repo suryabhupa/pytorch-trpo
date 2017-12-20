@@ -536,4 +536,15 @@ episode,last reward,average reward,step0,step1,step2,step3,step10
 episode,last reward,average reward,step0,step1,step2,step3,step10
 episode,last reward,average reward,step0,step1,step2,step3,step10
 episode,last reward,average reward,step0,step1,step2,step3,step10
+<<<<<<< HEAD
 episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel
+=======
+episode,last reward,average reward,step0,step1,step2,step3,step10
+episode,last reward,average reward,step0,step1,step2,step3,step10
+episode,last reward,average reward,step0,step1,step2,step3,step10
+episode,last reward,average reward,step0,step1,step2,step3,step10
+episode,last reward,average reward,step0,step1,step2,step3,step10
+1,-122.6616903421757,-110.85267944251117,2,-101.11468374461322,-100.36468536307551,3,-102.8331749843777,-88.36579591779073,4,-68.48352915035875,-79.84089414458062,5,-64.04508770272734,-72.31379045737451,6,-79.18614785324651,-64.24459812711032,7,-60.00327859938341,-58.29729611668095,episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel
+1,-122.6616903421757,-110.85267944251117,episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel,qemodel
+1,-122.6616903421757,-110.85267944251117,
+>>>>>>> 455745d66ce0901938c0f64338fd45bf9767f7f6
