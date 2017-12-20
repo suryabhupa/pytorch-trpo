@@ -199,7 +199,10 @@ while i_episode < int(args.max_steps / args.batch_size):
     if num_grad_eval_steps % args.eval_grad_freq == 0 or args.eval_grad == False:
         print('Episode {}\tLast reward: {}\tAverage reward {:.2f}'.format(
             i_episode, reward_sum, reward_batch))
-        writer.write("{},{},{},".format(i_episode, reward_sum, reward_batch))
+        if args.eval_grad == False:
+            writer.write("{},{},{}\n".format(i_episode, reward_sum, reward_batch)) 
+	else:
+	    writer.write("{},{},{},".format(i_episode, reward_sum, reward_batch))
         print('Updating policy and value networks...')
         if args.eval_grad_qe:
             update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
