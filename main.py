@@ -112,7 +112,7 @@ elif args.eval_grad_qe:
     if args.eval_grad:
         filename = "logs/qe_oracle_qe_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
     else:
-        filename = "logs/qe_oracle_qe_{}_eg-{}_{}_{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr)
+        filename = "logs/qe_oracle_qe_{}_eg-{}_{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr)
 elif args.eval_grad_qae:
     grads_list = [[], [], [], [], [], [], []]
     if args.eval_grad:
