@@ -31,10 +31,10 @@ def main(filename, gae, qe, freq, limit):
         ax = plt.subplot(121)
         ax.set_title('variance')
         plt.plot(eps,savgol_filter(var[:,0], freq, 5), label='0-step')
-        plt.plot(eps,savgol_filter(var[:,1], freq, 5),label='1-step')
-        plt.plot(eps,savgol_filter(var[:,2], freq, 5),label='2-step')
-        plt.plot(eps,savgol_filter(var[:,3], freq, 5),label='3-step')
-        plt.plot(eps,savgol_filter(var[:,4], freq, 5),label='10-step')
+        plt.plot(eps,savgol_filter(var[:,1], freq, 5), label='1-step')
+        plt.plot(eps,savgol_filter(var[:,2], freq, 5), label='2-step')
+        plt.plot(eps,savgol_filter(var[:,3], freq, 5), label='3-step')
+        plt.plot(eps,savgol_filter(var[:,4], freq, 5), label='10-step')
         plt.plot(eps,var[:,0], alpha=0.15)
         plt.plot(eps,var[:,1], alpha=0.15)
         plt.plot(eps,var[:,2], alpha=0.15)
@@ -97,7 +97,7 @@ def main(filename, gae, qe, freq, limit):
 
     ax = plt.subplot(122)
     ax.set_title('average rewards')
-    plt.plot(eps,rews, label='rewards')
+    plt.plot(eps,rews, '.',label='rewards')
 
     plt.subplot(121)
     if qe:
