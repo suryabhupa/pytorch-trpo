@@ -388,7 +388,7 @@ def update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args
     states = torch.Tensor(batch.state)
     values = value_net(Variable(states))
     values_q = qvalue_net(Variable(torch.cat([states, actions], 1)))
-    values_qe = qevalue_net(Variable(torch.cat([states, actions, eps], 1)))
+    values_qe = qevalue_net(Variable(torch.cat([states, actions], 1)))
 
     returns = torch.Tensor(actions.size(0),1)
     deltas = torch.Tensor(actions.size(0),1)
@@ -486,7 +486,7 @@ def update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, arg
     states = torch.Tensor(batch.state)
     values = value_net(Variable(states))
     values_q = qvalue_net(Variable(torch.cat([states, actions], 1)))
-    values_qe = qevalue_net(Variable(torch.cat([states, actions, eps], 1)))
+    values_qe = qevalue_net(Variable(torch.cat([states, actions], 1)))
 
     returns = torch.Tensor(actions.size(0),1)
     deltas = torch.Tensor(actions.size(0),1)
@@ -521,7 +521,8 @@ def update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, arg
             values_ = net(Variable(torch.cat([states, actions], 1)))
             value_loss = (values_ - targets_q).pow(2).mean()
         elif uid == 'qe':
-            values_ = net(Variable(torch.cat([states, actions, eps], 1)))
+           #  values_ = net(Variable(torch.cat([states, actions, eps], 1)))
+            values_ = net(Variable(torch.cat([states, actions], 1)))
             value_loss = (values_ - targets_q).pow(2).mean()
 
         if debug:
@@ -538,6 +539,11 @@ def update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, arg
     get_value_loss(get_flat_params_from(value_net).double().numpy(), value_net, 'v', debug=True)
     flat_params_v, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(value_net).double().numpy(), args=[value_net, 'v'], maxiter=25)
     set_flat_params_to(value_net, torch.Tensor(flat_params_v))
+
+    get_value_loss(get_flat_params_from(qvalue_net).double().numpy(), qvalue_net, 'q', debug=True)
+    flat_params_q, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qvalue_net).double().numpy(), args=[qvalue_net, 'q'], maxiter=25)
+    set_flat_params_to(qvalue_net, torch.Tensor(flat_params_q))
+
     get_value_loss(get_flat_params_from(qevalue_net).double().numpy(), qevalue_net, 'qe', debug=True)
     flat_params_qe, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qevalue_net).double().numpy(), args=[qevalue_net, 'qe'], maxiter=25)
     set_flat_params_to(qevalue_net, torch.Tensor(flat_params_qe))
@@ -553,7 +559,7 @@ def update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, arg
         log_prob = normal_log_density(Variable(actions), action_means, action_log_stds, action_stds)
 
         new_actions = torch.exp(action_log_stds) * Variable(eps) + action_means
-        qevalues = qevalue_net(torch.cat([Variable(states), new_actions, Variable(eps)], 1))
+        qevalues = qevalue_net(torch.cat([Variable(states), new_actions], 1))
         qevalues_fixed = qevalues.detach()
 
         action_loss = -Variable(advantages - qevalues_fixed.data) \

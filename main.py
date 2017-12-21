@@ -73,7 +73,7 @@ torch.manual_seed(args.seed)
 policy_net = Policy(num_inputs, num_actions)
 value_net = Value(num_inputs)
 qvalue_net = Value(num_inputs + num_actions)
-qevalue_net = Value(num_inputs + num_actions + num_actions)
+qevalue_net = Value(num_inputs + num_actions)# + num_actions)
 
 
 def select_action(state):
@@ -206,7 +206,7 @@ while i_episode < int(args.max_steps / args.batch_size):
         print('Updating policy and value networks...')
         if args.eval_grad_qe:
             update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
-        if args.eval_grad_qae:
+        elif args.eval_grad_qae:
             update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
         else:
             update_params(batch, policy_net, value_net, args)
