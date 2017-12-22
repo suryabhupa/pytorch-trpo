@@ -30,6 +30,7 @@ class Policy(nn.Module):
 
         return action_mean, action_log_std, action_std
 
+# TODO(sbhupatiraju) Add QValue(nn.Module)
 
 class Value(nn.Module):
     def __init__(self, num_inputs):

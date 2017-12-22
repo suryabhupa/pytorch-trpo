@@ -242,7 +242,7 @@ def compute_gradient_estimates_qe(batch, policy_net, value_net, qvalue_net, qeva
     states = torch.Tensor(batch.state)
     values = value_net(Variable(states))
     values_q = qvalue_net(Variable(torch.cat([states, actions], 1)))
-    values_qe = qevalue_net(Variable(torch.cat([states, actions, eps], 1)))
+    # values_qe = qevalue_net(Variable(torch.cat([states, actions, eps], 1)))
 
     returns = torch.Tensor(actions.size(0),1)
     deltas = torch.Tensor(actions.size(0),1)
@@ -383,7 +383,8 @@ def update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args
     rewards = torch.Tensor(batch.reward)
     masks = torch.Tensor(batch.mask)
     eps = torch.Tensor(np.concatenate(batch.eps, 0))
-    eps = torch.cat([eps[1:,:], torch.zeros(1,eps.size(1))])
+    eps = torch.normal(torch.zeros(eps.size()), torch.ones(eps.size())) # New eps
+    # eps = torch.cat([eps[1:,:], torch.zeros(1,eps.size(1))])
     actions = torch.Tensor(np.concatenate(batch.action, 0))
     states = torch.Tensor(batch.state)
     values = value_net(Variable(states))
@@ -428,27 +429,29 @@ def update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args
 
         if debug:
           print('====== QE update params ======')
+          print('TARGET_Q_{}: {}'.format(uid, targets_q.pow(2).mean().data[0]))
           print('VALUE_LOSS_{} before L2: {}'.format(uid, value_loss.data[0]))
         # weight decay
-        for param in net.parameters():
-            value_loss += param.pow(2).sum() * args.l2_reg
+        if uid == 'q':
+          for param in net.parameters():
+              value_loss += param.pow(2).sum() * args.q_l2_reg
+        else:
+          for param in net.parameters():
+              value_loss += param.pow(2).sum() * args.l2_reg
+
         if debug:
           print('VALUE_LOSS_{} after L2: {}'.format(uid, value_loss.data[0]))
         value_loss.backward()
         return (value_loss.data.double().numpy()[0], get_flat_grad_from(net).data.double().numpy())
 
-    get_value_loss(get_flat_params_from(value_net).double().numpy(), value_net, 'v', debug=True)
-    flat_params_v, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(value_net).double().numpy(), args=[value_net, 'v'], maxiter=25)
-    set_flat_params_to(value_net, torch.Tensor(flat_params_v))
-    get_value_loss(get_flat_params_from(qvalue_net).double().numpy(), qvalue_net, 'q', debug=True)
-    flat_params_q, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qvalue_net).double().numpy(), args=[qvalue_net, 'q'], maxiter=25)
-    set_flat_params_to(qvalue_net, torch.Tensor(flat_params_q))
+    # Compute loss with returns / V / Q(s, a) / Q(s, a, e)
 
     if args.adv_norm:
         advantages = (advantages - advantages.mean()) / advantages.std()
 
     action_means, action_log_stds, action_stds = policy_net(Variable(states))
     fixed_log_prob = normal_log_density(Variable(actions), action_means, action_log_stds, action_stds).data.clone()
+    fixed_qvalues = qvalue_net(torch.cat([Variable(states), Variable(actions)], 1))
 
     def get_loss(volatile=False):
         action_means, action_log_stds, action_stds = policy_net(Variable(states, volatile=volatile))
@@ -456,14 +459,12 @@ def update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args
 
         new_actions = torch.exp(action_log_stds) * Variable(eps) + action_means
         qvalues = qvalue_net(torch.cat([Variable(states), new_actions], 1))
-        qvalues_fixed = qvalues.detach()
+        # qvalues_fixed = qvalues.detach()
 
-        action_loss = -Variable(advantages - qvalues_fixed.data) \
+        action_loss = -Variable(advantages - fixed_qvalues.data) \
                 * torch.exp(log_prob - Variable(fixed_log_prob)) \
-                - qvalues
+                - qvalues # TODO(sbhupatiraju): Properly compute variance of this term
         return action_loss.mean()
-
-    # Compute loss with returns / V / Q(s, a) / Q(s, a, e)
 
     def get_kl():
         mean1, log_std1, std1 = policy_net(Variable(states))
@@ -475,6 +476,13 @@ def update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args
         return kl.sum(1, keepdim=True)
 
     trpo_step(policy_net, get_loss, get_kl, args.max_kl, args.damping)
+
+    # get_value_loss(get_flat_params_from(value_net).double().numpy(), value_net, 'v', debug=True)
+    flat_params_v, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(value_net).double().numpy(), args=[value_net, 'v'], maxiter=25)
+    set_flat_params_to(value_net, torch.Tensor(flat_params_v))
+    get_value_loss(get_flat_params_from(qvalue_net).double().numpy(), qvalue_net, 'q', debug=True)
+    flat_params_q, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qvalue_net).double().numpy(), args=[qvalue_net, 'q'], maxiter=25)
+    set_flat_params_to(qvalue_net, torch.Tensor(flat_params_q))
 
 
 def update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, args):
