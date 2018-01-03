@@ -103,18 +103,23 @@ if args.seed == 543:
 else:
     seedstr = "_seed-{}".format(args.seed)
 
+if not args.eval_grad_qe:
+    l2str = ""
+else:
+    l2str = "_q-l2-reg-{}".format(args.q_l2_reg)
+
 if args.eval_grad_gae:
     grads_list = [[], [], [], [], []]
     if args.eval_grad:
-        filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+        filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}_{}{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr, l2str)
     else:
-        filename = "logs/qe_oracle_gae_{}_eg-{}_{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr)
+        filename = "logs/qe_oracle_gae_{}_eg-{}_{}{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr, l2str)
 elif args.eval_grad_qe:
     grads_list = [[], [], [], [], [], [], [], []]
     if args.eval_grad:
-        filename = "logs/qe_oracle_qe_{}_eg-freq-{}_{}_{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr)
+        filename = "logs/qe_oracle_qe_{}_eg-freq-{}_{}_{}{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr, l2str)
     else:
-        filename = "logs/qe_oracle_qe_{}_eg-{}_{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr)
+        filename = "logs/qe_oracle_qe_{}_eg-{}_{}{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr, l2str)
 elif args.eval_grad_qae:
     grads_list = [[], [], [], [], [], [], []]
     if args.eval_grad:
