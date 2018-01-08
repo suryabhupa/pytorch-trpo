@@ -1,4 +1,5 @@
 import torch
+from torch import optim
 
 import argparse
 import csv
@@ -26,7 +27,7 @@ torch.set_default_tensor_type('torch.DoubleTensor')
 parser = argparse.ArgumentParser(description='PyTorch actor-critic example')
 parser.add_argument('--test', action='store_true',
                     help='debug flag; log to test files')
-parser.add_argument('--gamma', type=float, default=0.995, metavar='G',
+parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.995)')
 parser.add_argument('--env-name', default="Reacher-v1", metavar='G',
                     help='name of the environment to run')
@@ -36,12 +37,16 @@ parser.add_argument('--eval-grad-gae', action='store_true',
                     help='evaluate gradient variance with GAE')
 parser.add_argument('--eval-grad-qe', action='store_true',
                     help='evaluate gradient variance with Q models')
+parser.add_argument('--eval-grad-fqe', action='store_true',
+                    help='evaluate gradient variance with factorized action baseline')
 parser.add_argument('--eval-grad-qae', action='store_true',
                     help='evaluate gradient variance with QE models')
 parser.add_argument('--eval-grad-freq', type=int, default=5, metavar='N',
                     help='frequency of gradient variance estimation')
-parser.add_argument('--tau', type=float, default=0.97, metavar='G',
+parser.add_argument('--tau', type=float, default=0.95, metavar='G',
                     help='gae (default: 0.97)')
+parser.add_argument('--lr', type=float, default=5e-2, metavar='G',
+                    help='learning rate for qvalue_net (default: 1e-3)')
 parser.add_argument('--l2-reg', type=float, default=1e-3, metavar='G',
                     help='l2 regularization regression (default: 1e-3)')
 parser.add_argument('--q-l2-reg', type=float, default=1e-1, metavar='G',
@@ -75,6 +80,7 @@ torch.manual_seed(args.seed)
 policy_net = Policy(num_inputs, num_actions)
 value_net = Value(num_inputs)
 qvalue_net = Value(num_inputs + num_actions)
+q_optim = optim.Adam(qvalue_net.parameters(), lr=args.lr)
 qevalue_net = Value(num_inputs + num_actions)# + num_actions)
 
 
@@ -114,6 +120,12 @@ if args.eval_grad_gae:
         filename = "logs/qe_oracle_gae_{}_eg-freq-{}_{}_{}{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr, l2str)
     else:
         filename = "logs/qe_oracle_gae_{}_eg-{}_{}{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr, l2str)
+elif args.eval_grad_fqe:
+    grads_list = [[], [], [], [], [], [], [], []]
+    if args.eval_grad:
+        filename = "logs/qe_oracle_fqe_{}_eg-freq-{}_{}_{}{}{}.csv".format(args.env_name, args.eval_grad_freq, advnorm, timestamp, seedstr, l2str)
+    else:
+        filename = "logs/qe_oracle_fqe_{}_eg-{}_{}{}{}.csv".format(args.env_name, advnorm, timestamp, seedstr, l2str)
 elif args.eval_grad_qe:
     grads_list = [[], [], [], [], [], [], [], []]
     if args.eval_grad:
@@ -139,20 +151,25 @@ if args.test:
 file_h = open(filename, "a+")
 writer = file_h
 
-if args.eval_grad_gae:
-    f_cge = compute_gradient_estimates_advs
-    writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10\n')
-elif args.eval_grad_qae:
-    f_cge = compute_gradient_estimates_qae
-    writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel,qemodel\n')
-elif args.eval_grad_qe:
-    f_cge = compute_gradient_estimates_qe
-    writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel\n')
-else:
-    f_cge = compute_gradient_estimates
-    writer.write('episode,last reward,average reward,step0,stephalf,step1,step2,step3,step10\n')
+if args.eval_grad:
+    if args.eval_grad_gae:
+        f_cge = compute_gradient_estimates_advs
+        writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10\n')
+    elif args.eval_grad_qae:
+        f_cge = compute_gradient_estimates_qae
+        writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel,qemodel\n')
+    elif args.eval_grad_qe:
+        f_cge = compute_gradient_estimates_qe
+        writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel\n')
+    elif args.eval_grad_fqe:
+        raise NotImplementedError("compute_gradient_estimates_fqe not yet implemented!")
+        f_cge = compute_gradient_estimates_fqe
+        writer.write('episode,last reward,average reward,step0,step1,step2,step3,step10,qmodel\n')
+    else:
+        f_cge = compute_gradient_estimates
+        writer.write('episode,last reward,average reward,step0,stephalf,step1,step2,step3,step10\n')
 
-print("f_cge", f_cge)
+    print("f_cge", f_cge)
 
 i_episode = 1
 while i_episode < int(args.max_steps / args.batch_size):
@@ -198,7 +215,7 @@ while i_episode < int(args.max_steps / args.batch_size):
         num_grad_eval_steps += 1
         numer = num_grad_eval_steps % args.eval_grad_freq if num_grad_eval_steps % args.eval_grad_freq else args.eval_grad_freq
         print('Estimating gradient update ({}/{} done)...'.format(numer, args.eval_grad_freq))
-        if args.eval_grad_qe or args.eval_grad_qae:
+        if args.eval_grad_qe or args.eval_grad_qae or args.eval_grad_fqe:
             grads_list = f_cge(batch, policy_net, value_net, qvalue_net, qevalue_net, args, num_grad_eval_steps, grads_list, writer)
         else:
             grads_list = f_cge(batch, policy_net, value_net, args, num_grad_eval_steps, grads_list, writer)
@@ -215,6 +232,8 @@ while i_episode < int(args.max_steps / args.batch_size):
             update_params_qe(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
         elif args.eval_grad_qae:
             update_params_qae(batch, policy_net, value_net, qvalue_net, qevalue_net, args)
+        elif args.eval_grad_fqe:
+            update_params_fqe(batch, policy_net, value_net, qvalue_net, qevalue_net, q_optim, args)
         else:
             update_params(batch, policy_net, value_net, args)
         writer.flush()

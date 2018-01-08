@@ -135,10 +135,15 @@ def aggregate_or_eval_grads(model, returns_arr, get_eval_loss, num_eval_grad_ste
 
     return grads_list
 
-def trpo_step(model, get_loss, get_kl, max_kl, damping):
+def trpo_step(model, get_loss, get_kl, max_kl, damping, get_grad=None):
     loss = get_loss()
-    grads = torch.autograd.grad(loss, model.parameters())
-    loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
+    if get_grad:
+      grads = torch.autograd.grad(loss, model.parameters())
+      loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
+      print('Regular LOSS_GRAD_MSE: ', np.log(loss_grad.pow(2).mean()))
+      loss_grad = get_grad()
+      print('Factorized LOSS_GRAD_MSE: ', np.log(loss_grad.pow(2).mean()))
+
     # Get grads wrt different losses
     # Store across epochs
     # Compute variances
