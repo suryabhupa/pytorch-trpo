@@ -30,14 +30,12 @@ class Policy(nn.Module):
 
         return action_mean, action_log_std, action_std
 
-# TODO(sbhupatiraju) Add QValue(nn.Module)
-
 class Value(nn.Module):
-    def __init__(self, num_inputs):
+    def __init__(self, num_inputs, hid_dim=64):
         super(Value, self).__init__()
-        self.affine1 = nn.Linear(num_inputs, 64)
-        self.affine2 = nn.Linear(64, 64)
-        self.value_head = nn.Linear(64, 1)
+        self.affine1 = nn.Linear(num_inputs, hid_dim)
+        self.affine2 = nn.Linear(hid_dim, hid_dim)
+        self.value_head = nn.Linear(hid_dim, 1)
         self.value_head.weight.data.mul_(0.1)
         self.value_head.bias.data.mul_(0.0)
 

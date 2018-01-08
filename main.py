@@ -47,6 +47,8 @@ parser.add_argument('--tau', type=float, default=0.95, metavar='G',
                     help='gae (default: 0.97)')
 parser.add_argument('--lr', type=float, default=5e-2, metavar='G',
                     help='learning rate for qvalue_net (default: 1e-3)')
+parser.add_argument('--hid-dim', type=int, default=64, metavar='N',
+                    help='hidden dimension of Q value network')
 parser.add_argument('--l2-reg', type=float, default=1e-3, metavar='G',
                     help='l2 regularization regression (default: 1e-3)')
 parser.add_argument('--q-l2-reg', type=float, default=1e-1, metavar='G',
@@ -79,7 +81,7 @@ torch.manual_seed(args.seed)
 
 policy_net = Policy(num_inputs, num_actions)
 value_net = Value(num_inputs)
-qvalue_net = Value(num_inputs + num_actions)
+qvalue_net = Value(num_inputs=num_inputs + num_actions, hid_dim=hid_dim)
 q_optim = optim.Adam(qvalue_net.parameters(), lr=args.lr)
 qevalue_net = Value(num_inputs + num_actions)# + num_actions)
 
@@ -116,6 +118,12 @@ else:
 
 # Add learning rate to filename
 l2str += "_lr-{}".format(args.lr)
+
+# Add hidden dim to filename
+l2str += "_hid-dim-{}".format(args.hid_dim)
+
+if not args.batch_size == 15000:
+  l2str += "_batch-size-{}".format(args.batch_size)
 
 if args.eval_grad_gae:
     grads_list = [[], [], [], [], []]
