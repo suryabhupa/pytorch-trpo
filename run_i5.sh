@@ -1,6 +1,5 @@
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-qe --seed 100 --q-l2-reg 0.01 &
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-qe --seed 200 --q-l2-reg 0.01 &
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-qe --seed 300 --q-l2-reg 0.01 &
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-qe --seed 400 --q-l2-reg 0.01 &
-
-
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 100 --lr 1e-3 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 200 --lr 1e-3 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 300 --lr 1e-3 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 400 --lr 1e-3 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 500 --lr 1e-3 &

@@ -114,6 +114,9 @@ if not args.eval_grad_qe:
 else:
     l2str = "_q-l2-reg-{}".format(args.q_l2_reg)
 
+# Add learning rate to filename
+l2str += "_lr-{}".format(args.lr)
+
 if args.eval_grad_gae:
     grads_list = [[], [], [], [], []]
     if args.eval_grad:
