@@ -45,3 +45,19 @@ class Value(nn.Module):
 
         state_values = self.value_head(x)
         return state_values
+
+class Value2(nn.Module):
+    def __init__(self, num_inputs1, num_inputs2, hid_dim=64):
+        super(Value2, self).__init__()
+        self.affine1 = nn.Linear(num_inputs1, hid_dim)
+        self.affine2 = nn.Linear(hid_dim + num_inputs2, hid_dim)
+        self.value_head = nn.Linear(hid_dim, 1)
+        self.value_head.weight.data.mul_(0.1)
+        self.value_head.bias.data.mul_(1000.0)
+
+    def forward(self, inp):
+        x = F.tanh(self.affine1(inp[0]))
+        x = F.tanh(self.affine2(torch.cat([x, inp[1]], 1)))
+
+        state_values = self.value_head(x)
+        return state_values

@@ -49,6 +49,8 @@ parser.add_argument('--lr', type=float, default=5e-2, metavar='G',
                     help='learning rate for qvalue_net (default: 1e-3)')
 parser.add_argument('--hid-dim', type=int, default=64, metavar='N',
                     help='hidden dimension of Q value network')
+parser.add_argument('--value2', action='store_true',
+                    help='use alternative network architecture for Qvalue net')
 parser.add_argument('--l2-reg', type=float, default=1e-3, metavar='G',
                     help='l2 regularization regression (default: 1e-3)')
 parser.add_argument('--q-l2-reg', type=float, default=1e-1, metavar='G',
@@ -81,7 +83,10 @@ torch.manual_seed(args.seed)
 
 policy_net = Policy(num_inputs, num_actions)
 value_net = Value(num_inputs)
-qvalue_net = Value(num_inputs=num_inputs + num_actions, hid_dim=hid_dim)
+if args.value2:
+  qvalue_net = Value2(num_inputs, num_actions, hid_dim=args.hid_dim)
+else:
+  qvalue_net = Value(num_inputs=num_inputs + num_actions, hid_dim=args.hid_dim)
 q_optim = optim.Adam(qvalue_net.parameters(), lr=args.lr)
 qevalue_net = Value(num_inputs + num_actions)# + num_actions)
 
@@ -98,6 +103,9 @@ running_state = ZFilter((num_inputs,), clip=5)
 running_reward = ZFilter((1,), demean=False, clip=10)
 
 num_grad_eval_steps = 0
+
+if args.value2 and not args.eval_grad_fqe:
+  raise NotImplementedError("Value2 isn't ready for use for other estimators!")
 
 # Preparing files for logging
 timestamp = '{:%Y%m%d-%H%M}'.format(datetime.datetime.now())
@@ -124,6 +132,9 @@ l2str += "_hid-dim-{}".format(args.hid_dim)
 
 if not args.batch_size == 15000:
   l2str += "_batch-size-{}".format(args.batch_size)
+
+if args.value2:
+  l2str += "_value2"
 
 if args.eval_grad_gae:
     grads_list = [[], [], [], [], []]

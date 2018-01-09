@@ -501,8 +501,6 @@ def update_params_fqe(batch, policy_net, value_net, qvalue_net, qevalue_net, q_o
     actions = torch.Tensor(np.concatenate(batch.action, 0))
     states = torch.Tensor(batch.state)
     values = value_net(Variable(states))
-    values_q = qvalue_net(Variable(torch.cat([states, actions], 1)))
-    values_qe = qevalue_net(Variable(torch.cat([states, actions], 1)))
 
     returns = torch.Tensor(actions.size(0),1)
     deltas = torch.Tensor(actions.size(0),1)
@@ -534,7 +532,10 @@ def update_params_fqe(batch, policy_net, value_net, qvalue_net, qevalue_net, q_o
             values_ = net(Variable(states))
             value_loss = (values_ - targets).pow(2).mean()
         elif uid == 'q':
-            values_ = net(Variable(torch.cat([states, actions], 1)))
+            if args.value2:
+              values_ = net([Variable(states), Variable(actions)])
+            else:
+              values_ = net(Variable(torch.cat([states, actions], 1)))
             value_loss = (values_ - targets_q).pow(2).mean()
         elif uid == 'qe':
             values_ = net(Variable(torch.cat([states, actions, eps], 1)))
@@ -574,7 +575,10 @@ def update_params_fqe(batch, policy_net, value_net, qvalue_net, qevalue_net, q_o
     factorized_log_probs = []
     for i in range(action_means.size(1)):
         tiled_actions[i,:,i] = action_means[:,i].data
-        factorized_q_values.append(qvalue_net(torch.cat([Variable(states), Variable(tiled_actions[i])], 1)))
+        if args.value2:
+          factorized_q_values.append(qvalue_net([Variable(states), Variable(tiled_actions[i])]))
+        else:
+          factorized_q_values.append(qvalue_net(torch.cat([Variable(states), Variable(tiled_actions[i])], 1)))
         factorized_log_probs.append(normal_log_density(Variable(actions[:,i].unsqueeze(1)), action_means[:,i].unsqueeze(1), action_log_stds[:,i].unsqueeze(1), action_stds[:,i].unsqueeze(1)))
 
     def get_grad(volatile=False):
@@ -615,8 +619,8 @@ def update_params_fqe(batch, policy_net, value_net, qvalue_net, qevalue_net, q_o
         q_optim.zero_grad()
         loss = get_value_loss(get_flat_params_from(qvalue_net).double().numpy(), qvalue_net, 'q').backward()
         q_optim.step()
+    get_value_loss(get_flat_params_from(qvalue_net).double().numpy(), qvalue_net, 'q', debug=True)
 
-    # get_value_loss(get_flat_params_from(qvalue_net).double().numpy(), qvalue_net, 'q', debug=True)
     # flat_params_q, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(qvalue_net).double().numpy(), args=[qvalue_net, 'q'], maxiter=25)
     # set_flat_params_to(qvalue_net, torch.Tensor(flat_params_q))
 
