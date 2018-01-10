@@ -1,6 +1,4 @@
-python main.py --env-name 'Ant-v1' --eval-grad-fqe --seed 100 --lr 5e-2 &
-python main.py --env-name 'Ant-v1' --eval-grad-fqe --seed 200 --lr 5e-2 &
-python main.py --env-name 'Ant-v1' --eval-grad-fqe --seed 300 --lr 5e-2 &
-python main.py --env-name 'Ant-v1' --eval-grad-fqe --seed 400 --lr 5e-2 &
-python main.py --env-name 'Ant-v1' --eval-grad-fqe --seed 500 --lr 5e-2 &
+python main.py --env-name "HalfCheetah-v1" --anneal-gamma 0.5 --eval-grad-fqe --seed 123 &
+python main.py --env-name "HalfCheetah-v1" --anneal-gamma 0.5 --eval-grad-fqe --seed 124 &
+python main.py --env-name "HalfCheetah-v1" --anneal-gamma 0.5 --eval-grad-fqe --seed 125 &
 
