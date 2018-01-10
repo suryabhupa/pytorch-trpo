@@ -273,7 +273,7 @@ while i_episode < int(args.max_steps / args.batch_size):
         os.fsync(writer)
         i_episode += 1
 
-    if i_episode % 5 == 0:
+    if i_episode % 5 == 0 and args.anneal_gamma != 0:
         print("ANNEALING GAMMA! Previous: {}, New: {}".format(args.gamma, args.gamma * gamma_anneal_rate))
         args.gamma = args.gamma * gamma_anneal_rate
 
