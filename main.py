@@ -5,6 +5,7 @@ import argparse
 import csv
 import os
 import datetime
+import math
 from itertools import count
 import pdb
 
@@ -51,6 +52,8 @@ parser.add_argument('--hid-dim', type=int, default=64, metavar='N',
                     help='hidden dimension of Q value network')
 parser.add_argument('--value2', action='store_true',
                     help='use alternative network architecture for Qvalue net')
+parser.add_argument('--anneal-gamma', type=float, default=0, metavar='G',
+                    help='anneal gamma from value to 0.99 over 250 steps (default: 0)')
 parser.add_argument('--l2-reg', type=float, default=1e-3, metavar='G',
                     help='l2 regularization regression (default: 1e-3)')
 parser.add_argument('--q-l2-reg', type=float, default=1e-1, metavar='G',
@@ -136,6 +139,9 @@ if not args.batch_size == 15000:
 if args.value2:
   l2str += "_value2"
 
+if args.anneal_gamma != 0:
+  l2str += "_anneal-gamma-{}".format(args.anneal_gamma)
+
 if args.eval_grad_gae:
     grads_list = [[], [], [], [], []]
     if args.eval_grad:
@@ -192,6 +198,11 @@ if args.eval_grad:
         writer.write('episode,last reward,average reward,step0,stephalf,step1,step2,step3,step10\n')
 
     print("f_cge", f_cge)
+
+if args.anneal_gamma != 0:
+    args.gamma = args.anneal_gamma
+    gamma_anneal_rate = math.pow(0.99 / args.anneal_gamma, 1./100)
+
 
 i_episode = 1
 while i_episode < int(args.max_steps / args.batch_size):
@@ -261,5 +272,9 @@ while i_episode < int(args.max_steps / args.batch_size):
         writer.flush()
         os.fsync(writer)
         i_episode += 1
+
+    if i_episode % 5 == 0:
+        print("ANNEALING GAMMA! Previous: {}, New: {}".format(args.gamma, args.gamma * gamma_anneal_rate)
+        args.gamma = args.gamma * gamma_anneal_rate
 
 writer.close()
