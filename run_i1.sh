@@ -1,6 +1,6 @@
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 100 --lr 1e-1 &
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 200 --lr 1e-1 &
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 300 --lr 1e-1 &
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 400 --lr 1e-1 &
-python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 500 --lr 1e-1 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 101 --lr 0.001 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 201 --lr 0.001 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 301 --lr 0.001 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 401 --lr 0.001 &
+python main.py --env-name 'HalfCheetah-v1' --eval-grad-fqe --seed 501 --lr 0.001 &
 
