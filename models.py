@@ -4,6 +4,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class DiscretePolicy(nn.Module):
+    def __init__(self, num_inputs, num_outputs):
+        super(DiscretePolicy, self).__init__()
+        self.affine1 = nn.Linear(num_inputs, 64)
+        self.affine2 = nn.Linear(64, 64)
+        self.affine3 = nn.Linear(64, num_outputs)
+        self.softmax = nn.Softmax()
+
+    def forward(self, x):
+        out = F.tanh(self.affine1(x))
+        out = F.tanh(self.affine2(out))
+        out = F.tanh(self.affine3(out))
+        out = self.softmax(out)
+        return out
+
+
 class Policy(nn.Module):
     def __init__(self, num_inputs, num_outputs):
         super(Policy, self).__init__()
