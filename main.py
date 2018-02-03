@@ -1,4 +1,6 @@
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import argparse
 from itertools import count
 
@@ -62,16 +64,18 @@ else:
 value_net = Value(num_inputs)
 
 def select_action(state):
-		if args.discrete:
-				state = torch.from_numpy(state).unsqueeze(0)
-				probabilities = policy_net(Variable(state))
-				action = probabilities.multinomial(1)
-				return action, probabilities
-		else:
-				state = torch.from_numpy(state).unsqueeze(0)
-				action_mean, _, action_std = policy_net(Variable(state))
-				action = torch.normal(action_mean, action_std)
-				return action
+    if args.discrete:
+        state = torch.from_numpy(state).unsqueeze(0)
+        logits = policy_net(Variable(state))
+        softmax = nn.Softmax()
+        probs = softmax(logits)
+        action = probs.multinomial(1)
+        return action, probs
+    else:
+        state = torch.from_numpy(state).unsqueeze(0)
+        action_mean, _, action_std = policy_net(Variable(state))
+        action = torch.normal(action_mean, action_std)
+        return action
 
 def update_params(batch):
     rewards = torch.Tensor(batch.reward)
@@ -120,29 +124,20 @@ def update_params(batch):
     flat_params, _, opt_info = scipy.optimize.fmin_l_bfgs_b(get_value_loss, get_flat_params_from(value_net).double().numpy(), maxiter=25)
     set_flat_params_to(value_net, torch.Tensor(flat_params))
 
-    advantages = (advantages - advantages.mean()) / advantages.std()
-
-    def surrogate_loss(self, theta):
-        """
-        Returns the surrogate loss w.r.t. the given parameter vector theta
-        """
-        new_model = copy.deepcopy(self.policy_model)
-        vector_to_parameters(theta, new_model.parameters())
-        observations_tensor = torch.cat([Variable(Tensor(observation)).unsqueeze(0) for observation in self.observations])
-        prob_new = new_model(observations_tensor).gather(1, torch.cat(self.actions)).data
-        prob_old = self.policy_model(observations_tensor).gather(1, torch.cat(self.actions)).data + 1e-8
-        return -torch.mean((prob_new / prob_old) * self.advantage)
+    # advantages = (advantages - advantages.mean()) / advantages.std()
 
     if args.discrete:
-        fixed_probs = policy_net(Variable(states))
+        fixed_logits = policy_net(Variable(states)).data.clone()
+        fixed_logprobs = (fixed_logits - torch.log(torch.sum(torch.exp(fixed_logits), 1)).unsqueeze(1)).gather(1, actions.long())
     else:
         action_means, action_log_stds, action_stds = policy_net(Variable(states))
         fixed_log_prob = normal_log_density(Variable(actions), action_means, action_log_stds, action_stds).data.clone()
 
     def get_loss(volatile=False):
         if args.discrete:
-            probs = policy_net(Variable(states, volatile=volatile))
-            action_loss = -Variable(advantages) * (probs / fixed_probs)
+            logits = policy_net(Variable(states, volatile=volatile))
+            logprobs = (logits - torch.log(torch.sum(torch.exp(logits), 1)).unsqueeze(1)).gather(1, Variable(actions.long()))
+            action_loss = -Variable(advantages) * torch.exp(logprobs - Variable(fixed_logprobs))
             return action_loss.mean()
         else:
             action_means, action_log_stds, action_stds = policy_net(Variable(states, volatile=volatile))
@@ -150,14 +145,15 @@ def update_params(batch):
             action_loss = -Variable(advantages) * torch.exp(log_prob - Variable(fixed_log_prob))
             return action_loss.mean()
 
-
     def get_kl():
         if args.discrete:
-            action_probs = policy_net(Variable(states))
-
+            softmax = torch.nn.Softmax()
+            action_probs1 = softmax(policy_net(Variable(states)))
+            action_probs0 = Variable(action_probs1.data)
+            kl = -action_probs0 * (torch.log(action_probs1) - torch.log(action_probs0))
+            return kl.sum(1, keepdim=True)
         else:
             mean1, log_std1, std1 = policy_net(Variable(states))
-
             mean0 = Variable(mean1.data)
             log_std0 = Variable(log_std1.data)
             std0 = Variable(std1.data)

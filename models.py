@@ -16,7 +16,7 @@ class DiscretePolicy(nn.Module):
         out = F.tanh(self.affine1(x))
         out = F.tanh(self.affine2(out))
         out = F.tanh(self.affine3(out))
-        out = self.softmax(out)
+        # out = self.softmax(out) # Don't work directly in softmax space
         return out
 
 
